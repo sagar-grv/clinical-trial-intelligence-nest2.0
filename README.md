@@ -58,6 +58,25 @@ Detailed documentation is available in the `docs/` folder:
 - [📥 Project Walkthrough](./docs/walkthrough.md): Comprehensive guide to all features, roles, and workflows.
 - [📊 Project Analysis](./docs/project_analysis.md): In-depth architectural review and improvement roadmap.
 - [🚀 Deployment Guide](./docs/deployment_guide.md): Step-by-step instructions for GitHub and Streamlit Cloud.
+- [📋 Implementation Plan](./docs/implementation_plan.md): Technical plan used during development.
+- [✅ Task Checklist](./docs/task.md): Original task tracking list.
+
+## 📸 Project Gallery
+
+### Verification Videos
+
+- [Async Analysis & Pagination Demo](./docs/images/async_analysis_pagination_test_1767217090367.webp)
+- [Comprehensive Verification Flow](./docs/images/comprehensive_verification_1767190810874.webp)
+- [Clinical Trial Verification](./docs/images/clinical_trial_verification_1767215030656.webp)
+
+### Key Screenshots
+
+| | |
+| :-------------------------: | :-------------------------: |
+| ![Dashboard](./docs/images/enterprise_dashboard_1767202163910.png) <br> **Enterprise Dashboard** | ![Site View](./docs/images/site_role_dashboard_1767214840144.png) <br> **Site Role View** |
+| ![Agentic AI](./docs/images/approved_email_draft_1767215376329.png) <br> **AI Email Approval** | ![Upload](./docs/images/upload_interface_1767202223733.png) <br> **Upload Interface** |
+
+[📂 View all 20+ images and videos in docs/images](./docs/images)
 
 ---
 
