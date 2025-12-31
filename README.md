@@ -51,6 +51,14 @@ Built for enterprise scale:
 - **AI Engine**: Google Gemini Pro (via `GeminiClient`).
 - **Visualization**: Plotly Interactive Charts.
 
+## 📚 Documentation & Reports
+
+Detailed documentation is available in the `docs/` folder:
+
+- [📥 Project Walkthrough](./docs/walkthrough.md): Comprehensive guide to all features, roles, and workflows.
+- [📊 Project Analysis](./docs/project_analysis.md): In-depth architectural review and improvement roadmap.
+- [🚀 Deployment Guide](./docs/deployment_guide.md): Step-by-step instructions for GitHub and Streamlit Cloud.
+
 ---
 
 ## 🚀 How to Run Locally
