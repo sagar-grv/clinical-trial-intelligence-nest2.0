@@ -17,8 +17,12 @@ from core.pipeline import ProcessingPipeline
 from core.worker import start_async_analysis, AnalysisWorker
 from ai.gemini_client import GeminiClient
 
-# Initialize database on startup
-init_database("database/clinical_trials.db")
+# Initialize database on startup (cached to prevent race conditions)
+@st.cache_resource
+def get_db_engine():
+    return init_database("database/clinical_trials.db")
+
+engine = get_db_engine()
 
 # Page configuration
 st.set_page_config(

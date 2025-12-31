@@ -368,7 +368,12 @@ def init_database(db_path: str = "database/clinical_trials.db"):
     """Initialize database and create all tables if they don't exist."""
     engine = get_engine(db_path)
     # checkfirst=True prevents errors if tables already exist
-    Base.metadata.create_all(engine, checkfirst=True)
+    try:
+        Base.metadata.create_all(engine, checkfirst=True)
+    except Exception as e:
+        # Ignore if tables already exist (common race condition in cloud envs)
+        if "already exists" not in str(e):
+            raise e
     return engine
 
 
