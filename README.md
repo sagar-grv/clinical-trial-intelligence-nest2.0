@@ -137,7 +137,7 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Access at: <http://localhost:8501>
+Access at: [<http://localhost:8501>](https://agens-clinical-trial-intelligence-nest20.streamlit.app/)
 
 ---
 
