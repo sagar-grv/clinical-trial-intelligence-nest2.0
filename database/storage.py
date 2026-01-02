@@ -392,6 +392,80 @@ class DatabaseStorage:
             file_record.study_id = study_id
             self.session.commit()
     
+    def delete_study(self, study_id: int) -> Dict:
+        """
+        Delete a study and ALL related data (cascade delete).
+        
+        Deletes: Study -> Files -> Tables -> Issues -> Analysis -> Insights -> Alerts -> Trends
+        """
+        result = {
+            "success": False,
+            "deleted_files": 0,
+            "deleted_tables": 0,
+            "deleted_issues": 0
+        }
+        
+        try:
+            study = self.get_study_by_id(study_id)
+            if not study:
+                result["error"] = "Study not found"
+                return result
+            
+            # Get all files in study
+            files = self.get_study_files(study_id)
+            
+            for file in files:
+                # Delete issues for each table in file
+                tables = self.get_tables_by_file(file.file_id)
+                for table in tables:
+                    issues = self.session.query(DetectedIssue).filter_by(table_id=table.table_id).all()
+                    for issue in issues:
+                        self.session.delete(issue)
+                        result["deleted_issues"] += 1
+                    self.session.delete(table)
+                    result["deleted_tables"] += 1
+                
+                # Delete analysis results
+                analyses = self.session.query(AnalysisResult).filter_by(file_id=file.file_id).all()
+                for a in analyses:
+                    self.session.delete(a)
+                
+                # Delete insights
+                insights = self.session.query(GeminiInsight).filter_by(file_id=file.file_id).all()
+                for i in insights:
+                    self.session.delete(i)
+                
+                # Delete audits
+                audits = self.session.query(ExtractionAudit).filter_by(file_id=file.file_id).all()
+                for a in audits:
+                    self.session.delete(a)
+                
+                # Delete file
+                self.session.delete(file)
+                result["deleted_files"] += 1
+            
+            # Delete alerts for study
+            alerts = self.session.query(Alert).filter_by(study_id=study_id).all()
+            for a in alerts:
+                self.session.delete(a)
+            
+            # Delete trend snapshots
+            trends = self.session.query(RiskTrendSnapshot).filter_by(study_id=study_id).all()
+            for t in trends:
+                self.session.delete(t)
+            
+            # Delete study
+            self.session.delete(study)
+            self.session.commit()
+            
+            result["success"] = True
+            
+        except Exception as e:
+            self.session.rollback()
+            result["error"] = str(e)
+        
+        return result
+    
     # ==================== STUDY-LEVEL AGGREGATION ====================
     
     def get_study_issues(self, study_id: int) -> List[DetectedIssue]:

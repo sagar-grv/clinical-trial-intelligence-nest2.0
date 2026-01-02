@@ -139,7 +139,22 @@ Answer questions about this clinical trial data based on the analytics:
 
 {analytics_summary}
 
-Provide clear, specific answers referencing the data provided."""
+Provide clear, specific answers referencing the data provided.""",
+
+            "comparison": f"""{base_context}
+
+Compare these two clinical trial studies:
+
+{analytics_summary}
+
+Analyze and provide:
+1. Key differences in risk profiles between the studies
+2. Which study has better data quality and why
+3. Common issues appearing in both studies
+4. Specific recommendations for each study
+5. Which study requires more immediate attention
+
+Be specific and reference actual numbers from the data."""
         }
         
         return prompts.get(prompt_type, prompts["summary"])

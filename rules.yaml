@@ -1,0 +1,85 @@
+# Clinical Trial Intelligence - Detection Rules Configuration
+# This file allows non-developers to modify detection thresholds without code changes
+
+quality_rules:
+  MISSING_DATA:
+    description: "Percentage of missing cells in any table"
+    thresholds:
+      low: 5
+      medium: 15
+      high: 30
+    unit: "percent"
+
+  EMPTY_ROWS:
+    description: "Count of completely empty rows"
+    thresholds:
+      low: 1
+      medium: 5
+      high: 10
+    unit: "count"
+
+  MISSING_LAB_DATA:
+    description: "Rows with missing lab values or results"
+    thresholds:
+      low: 1
+      medium: 3
+      high: 10
+    unit: "count"
+
+  DATA_INCONSISTENCY:
+    description: "Mixed data types ratio in a column"
+    thresholds:
+      low: 20
+      medium: 35
+      high: 50
+    unit: "percent"
+
+  LARGE_TABLE:
+    description: "Row count threshold for review recommendation"
+    thresholds:
+      trigger: 100
+    unit: "count"
+
+operational_rules:
+  QUERY_BACKLOG:
+    description: "Open queries per site"
+    thresholds:
+      low: 10
+      medium: 20
+      high: 50
+    unit: "count"
+
+  DELAYED_VISITS:
+    description: "Count of delayed/overdue visits"
+    thresholds:
+      low: 1
+      medium: 3
+      high: 10
+    unit: "count"
+
+  DELAYED_DATA_ENTRY:
+    description: "Average days of data entry delay"
+    thresholds:
+      low: 3
+      medium: 7
+      high: 14
+    unit: "days"
+
+  PROJECTION_SLIPPAGE:
+    description: "Visit projection slippage percentage"
+    thresholds:
+      low: 5
+      medium: 15
+      high: 25
+    unit: "percent"
+
+alert_rules:
+  HIGH_RISK_THRESHOLD:
+    description: "High-severity issues count to trigger critical alert"
+    threshold: 3
+    alert_type: "critical"
+
+  ISSUE_COUNT_THRESHOLD:
+    description: "Total issues count to trigger warning alert"
+    threshold: 10
+    alert_type: "warning"

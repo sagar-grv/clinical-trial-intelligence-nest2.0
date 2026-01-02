@@ -936,26 +936,29 @@ def render_study_dashboard(study_id: int):
     
     # ROLE-SPECIFIC TABS
     if user_role == "CTT":
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
             "📊 Strategic Overview",
             "📁 All Files",
             "🤖 AI Insights",
+            "💬 AI Query",
             "📈 Risk Trends",
             "🤝 AI Actions"
         ])
     elif user_role == "CRA":
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
             "🏥 Site Issues",
             "📋 Action Items",
             "🔍 Monitoring Focus",
+            "💬 AI Query",
             "📈 Site Trends",
             "🤝 AI Actions"
         ])
     else:  # Site
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
             "✅ Compliance Status",
             "📋 My Tasks",
             "📁 Submitted Files",
+            "💬 AI Query",
             "📈 Progress",
             "🤝 AI Actions"
         ])
@@ -1084,7 +1087,11 @@ def render_study_dashboard(study_id: int):
             st.info("No insights available. Process files first.")
     
     with tab4:
-        # TREND VISUALIZATION (NEW)
+        # AI QUERY SECTION (NEW)
+        render_ai_query_section(study_id)
+    
+    with tab5:
+        # TREND VISUALIZATION
         st.markdown("### 📈 Risk Trend Analysis")
         
         # Get trend data
@@ -1175,7 +1182,7 @@ def render_study_dashboard(study_id: int):
         - **Current Risk Score**: {risk_info.get('score', 0):.1f}
         """)
     
-    with tab5:
+    with tab6:
         # AGENTIC AI PANEL (NEW)
         st.markdown("### 🤝 AI-Powered Actions")
         st.caption("*AI proposes, Human approves* - All actions require your approval before execution.")
@@ -1447,6 +1454,16 @@ def main():
         - Never written to disk
         - Cleared on session end
         """)
+        
+        st.markdown("---")
+        st.markdown("### 👥 Team Agens")
+        st.markdown("""
+        **Team Lead:** Sagar Grv
+        
+        [![GitHub](https://img.shields.io/badge/GitHub-sagar--grv-181717?logo=github)](https://github.com/sagar-grv)
+        [![LinkedIn](https://img.shields.io/badge/LinkedIn-sagargrv-0A66C2?logo=linkedin)](https://www.linkedin.com/in/sagargrv/)
+        """)
+        st.caption("v2.1 | Clinical Trial Intelligence Platform")
     
     # Check for selected study or file
     selected_study_id = st.session_state.get("selected_study_id")
@@ -1475,20 +1492,32 @@ def main():
     
     else:
         # Main tabs for upload and management
-        tab1, tab2, tab3 = st.tabs(["📤 Upload Files", "📁 Manage Files", "📊 All Studies"])
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "📤 Upload Files", 
+            "📥 Scan Data Lake", 
+            "📁 Manage Files", 
+            "📊 All Studies",
+            "🔄 Compare Studies"
+        ])
         
         with tab1:
             render_file_upload()
         
         with tab2:
-            render_files_list()
+            render_pending_ingestion()
         
         with tab3:
+            render_files_list()
+        
+        with tab4:
             render_studies_list()
+        
+        with tab5:
+            render_study_comparison()
 
 
 def render_studies_list():
-    """Render list of all studies."""
+    """Render list of all studies with delete option."""
     st.markdown("## 📊 All Studies")
     
     storage = get_storage()
@@ -1498,12 +1527,12 @@ def render_studies_list():
         st.info("No studies created yet. Upload files to create your first study.")
         return
     
-    # Studies table
+    # Studies table with delete
     for study in studies:
         risk_emoji = "🔴" if study.risk_level == "High Risk" else "🟡" if study.risk_level == "Medium Risk" else "🟢"
         
         with st.expander(f"{risk_emoji} **{study.study_name}** - {len(study.files) if study.files else 0} files"):
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
             
             with col1:
                 st.metric("Files", len(study.files) if study.files else 0)
@@ -1512,10 +1541,214 @@ def render_studies_list():
             with col3:
                 st.metric("Risk Score", f"{study.risk_score:.1f}" if study.risk_score else "N/A")
             with col4:
-                if st.button("📊 View Dashboard", key=f"view_study_{study.study_id}"):
+                if st.button("📊 View", key=f"view_study_{study.study_id}"):
                     st.session_state["selected_study_id"] = study.study_id
                     st.rerun()
+            with col5:
+                if st.button("🗑️ Delete", key=f"delete_study_{study.study_id}", type="secondary"):
+                    st.session_state[f"confirm_delete_{study.study_id}"] = True
+            
+            # Confirm delete dialog
+            if st.session_state.get(f"confirm_delete_{study.study_id}"):
+                st.warning(f"⚠️ Are you sure you want to delete **{study.study_name}**? This will delete ALL files, issues, and analysis data.")
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    if st.button("✅ Yes, Delete", key=f"confirm_yes_{study.study_id}", type="primary"):
+                        result = storage.delete_study(study.study_id)
+                        if result["success"]:
+                            st.success(f"Deleted study with {result['deleted_files']} files, {result['deleted_issues']} issues")
+                            st.session_state[f"confirm_delete_{study.study_id}"] = False
+                            st.rerun()
+                        else:
+                            st.error(f"Delete failed: {result.get('error')}")
+                with col_b:
+                    if st.button("❌ Cancel", key=f"confirm_no_{study.study_id}"):
+                        st.session_state[f"confirm_delete_{study.study_id}"] = False
+                        st.rerun()
+
+
+def render_pending_ingestion():
+    """Show files detected in Data Lake awaiting approval (Human-in-Loop)."""
+    st.markdown("### 📥 Pending Ingestion Queue")
+    st.caption("*Files are auto-detected but require your approval to process*")
+    
+    from core.folder_watcher import FolderWatcher
+    from config import DATA_LAKE_PATH
+    
+    storage = get_storage()
+    pipeline = get_pipeline()
+    watcher = FolderWatcher(str(DATA_LAKE_PATH), storage, pipeline)
+    
+    # Check for interrupted files first
+    in_progress = watcher.get_in_progress()
+    if in_progress:
+        st.warning(f"⚠️ {len(in_progress)} file(s) were interrupted. Click to resume.")
+        if st.button("🔄 Resume Interrupted"):
+            results = watcher.resume_interrupted()
+            for r in results:
+                if r["result"]["success"]:
+                    st.success(f"✅ Resumed: {r['file']}")
+                else:
+                    st.error(f"❌ Failed: {r['file']} - {r['result'].get('error')}")
+            st.rerun()
+    
+    # Scan for new files
+    detected = watcher.scan_for_new_files()
+    
+    if not detected:
+        st.success("✅ No new files detected in Data Lake")
+        stats = watcher.get_statistics()
+        st.caption(f"Processed: {stats['processed_count']} | Skipped: {stats['skipped_count']}")
+        return
+    
+    st.info(f"🔔 **{len(detected)} new file(s) detected**")
+    
+    for study_name, file_path in detected:
+        col1, col2, col3 = st.columns([3, 1, 1])
+        with col1:
+            st.markdown(f"📄 **{file_path.name}**")
+            st.caption(f"→ Study: `{study_name}`")
+        with col2:
+            if st.button("✅ Approve", key=f"approve_{hash(str(file_path))}"):
+                with st.spinner(f"Processing {file_path.name}..."):
+                    result = watcher.process_file(study_name, file_path)
+                    if result["success"]:
+                        st.success(f"✅ Processed: {result['tables_extracted']} tables, {result['issues_detected']} issues")
+                    else:
+                        st.error(f"❌ Failed: {result.get('error')}")
+                st.rerun()
+        with col3:
+            if st.button("⏭️ Skip", key=f"skip_{hash(str(file_path))}"):
+                watcher.mark_as_skipped(str(file_path))
+                st.rerun()
+
+
+def render_ai_query_section(study_id: int):
+    """AI-powered natural language query interface."""
+    st.markdown("### 🤖 AI Query Assistant")
+    st.markdown("Ask questions about your clinical trial data in plain English.")
+    
+    with st.expander("💡 Example Queries", expanded=False):
+        st.markdown("""
+        - "Which sites have the most open queries?"
+        - "What is the trend of risk score?"
+        - "Compare data quality issues across all sites"
+        - "Which issue category is most common?"
+        - "Summarize the top 5 issues requiring immediate action"
+        - "What percentage of data is missing?"
+        """)
+    
+    query = st.text_area("Enter your question:", placeholder="e.g., Which sites need immediate attention?", height=80)
+    
+    if st.button("🔍 Ask AI", type="primary"):
+        if not query.strip():
+            st.warning("Please enter a question")
+            return
+            
+        with st.spinner("Analyzing..."):
+            storage = get_storage()
+            study_summary = storage.get_study_summary(study_id)
+            gemini = get_gemini()
+            
+            response = gemini.answer_question(query, study_summary)
+            
+            st.markdown("---")
+            st.markdown("### 💬 Answer")
+            st.markdown(response.get("answer", "Unable to generate answer"))
+            
+            if response.get("fallback"):
+                st.caption("*Generated using rule-based fallback (Gemini unavailable)*")
+
+
+def render_study_comparison():
+    """Compare two studies side by side with AI insights."""
+    st.markdown("### 📊 Cross-Study Comparison")
+    
+    storage = get_storage()
+    studies = storage.get_all_studies()
+    
+    if len(studies) < 2:
+        st.info("Need at least 2 studies to compare. Upload files to more studies first.")
+        return
+    
+    study_names = [s.study_name for s in studies]
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        study1_name = st.selectbox("Study A", study_names, key="compare_study1")
+    with col2:
+        # Default to different study
+        default_idx = 1 if len(study_names) > 1 else 0
+        study2_name = st.selectbox("Study B", study_names, index=default_idx, key="compare_study2")
+    
+    if study1_name == study2_name:
+        st.warning("Please select two different studies to compare")
+        return
+    
+    if st.button("🔄 Compare Studies", type="primary"):
+        s1 = storage.get_study_by_name(study1_name)
+        s2 = storage.get_study_by_name(study2_name)
+        
+        sum1 = storage.get_study_summary(s1.study_id)
+        sum2 = storage.get_study_summary(s2.study_id)
+        
+        st.markdown("---")
+        st.markdown("### 📈 Comparison Results")
+        
+        # Comparison Table
+        import pandas as pd
+        comparison_data = pd.DataFrame({
+            "Metric": ["Files", "Tables", "Unique Issues", "High Severity", "Medium Severity", "Risk Level", "Risk Score"],
+            study1_name: [
+                sum1["files"]["total"],
+                sum1["extraction"]["total_tables"],
+                sum1["issues"]["total_unique_issues"],
+                sum1["issues"]["by_severity"]["High"],
+                sum1["issues"]["by_severity"]["Medium"],
+                sum1["risk"]["level"] or "N/A",
+                f"{sum1['risk']['score']:.1f}" if sum1["risk"]["score"] else "N/A"
+            ],
+            study2_name: [
+                sum2["files"]["total"],
+                sum2["extraction"]["total_tables"],
+                sum2["issues"]["total_unique_issues"],
+                sum2["issues"]["by_severity"]["High"],
+                sum2["issues"]["by_severity"]["Medium"],
+                sum2["risk"]["level"] or "N/A",
+                f"{sum2['risk']['score']:.1f}" if sum2["risk"]["score"] else "N/A"
+            ]
+        })
+        
+        st.dataframe(comparison_data, use_container_width=True, hide_index=True)
+        
+        # Visual comparison
+        col1, col2 = st.columns(2)
+        with col1:
+            risk_class1 = "high" if "High" in str(sum1["risk"]["level"]) else "medium" if "Medium" in str(sum1["risk"]["level"]) else "low"
+            st.markdown(f'**{study1_name}**: <span class="risk-{risk_class1}">{sum1["risk"]["level"]}</span>', unsafe_allow_html=True)
+        with col2:
+            risk_class2 = "high" if "High" in str(sum2["risk"]["level"]) else "medium" if "Medium" in str(sum2["risk"]["level"]) else "low"
+            st.markdown(f'**{study2_name}**: <span class="risk-{risk_class2}">{sum2["risk"]["level"]}</span>', unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        # AI-Generated Comparison
+        st.markdown("### 🤖 AI Comparison Analysis")
+        
+        gemini = get_gemini()
+        comparison_json = {
+            "study_a_name": study1_name,
+            "study_a": sum1,
+            "study_b_name": study2_name,
+            "study_b": sum2
+        }
+        
+        with st.spinner("Generating AI comparison..."):
+            insight = gemini.generate_insight(comparison_json, "comparison")
+            st.markdown(insight.get("insight", "Unable to generate comparison"))
 
 
 if __name__ == "__main__":
     main()
+
